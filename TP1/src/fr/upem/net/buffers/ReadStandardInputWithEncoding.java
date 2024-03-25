@@ -15,11 +15,10 @@ public class ReadStandardInputWithEncoding {
 
   private static String stringFromStandardInput(Charset cs) throws IOException {
     var buffer = ByteBuffer.allocate(BUFFER_SIZE);
-    var nbRead = 0;
 
-    ReadableByteChannel in = Channels.newChannel(System.in);
-    while ((nbRead = in.read(buffer)) != -1) {
-      if (buffer.remaining() < nbRead) {
+    var in = Channels.newChannel(System.in);
+    while (in.read(buffer) != -1) {
+      if (!buffer.hasRemaining()) {
         var newBuffer = ByteBuffer.allocate(buffer.capacity() * 2);
         buffer.flip();
         newBuffer.put(buffer);
