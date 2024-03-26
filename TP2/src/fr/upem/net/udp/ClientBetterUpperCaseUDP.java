@@ -3,14 +3,14 @@ package fr.upem.net.udp;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.DatagramChannel;
 import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
-import java.util.logging.Logger;
 
 public class ClientBetterUpperCaseUDP {
 	private static final int MAX_PACKET_SIZE = 1024;
@@ -37,7 +37,7 @@ public class ClientBetterUpperCaseUDP {
 		Objects.requireNonNull(msg);
 		Objects.requireNonNull(charsetName);
 
-		if (msg.isBlank() || Charset.availableCharsets().containsKey(charsetName)) {
+		if (msg.isBlank()) {
 			return Optional.empty();
 		}
 
@@ -46,8 +46,14 @@ public class ClientBetterUpperCaseUDP {
 		encCharsetSize.flip();
 
 		var encCharsetName = ASCII_CHARSET.encode(charsetName);
-		var encMsg = Charset.forName(charsetName)
-						.encode(msg);
+
+		ByteBuffer encMsg = null;
+		try {
+			encMsg = Charset.forName(charsetName).encode(msg);
+		} catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
+			return Optional.empty();
+		}
+
 
 		var size = encCharsetSize.remaining() + encCharsetName.remaining() + encMsg.remaining();
 		if (size > MAX_PACKET_SIZE) {
@@ -75,8 +81,29 @@ public class ClientBetterUpperCaseUDP {
 	 */
 	public static Optional<String> decodeMessage(ByteBuffer buffer) {
 		Objects.requireNonNull(buffer);
-		return null;
-		// TODO
+		buffer.flip();
+
+		if (buffer.remaining() < Integer.BYTES || buffer.remaining() > MAX_PACKET_SIZE) {
+			return Optional.empty();
+		}
+
+		var charsetSize = buffer.getInt();
+		if (charsetSize < 0 || charsetSize > buffer.remaining()) {
+			return Optional.empty();
+		}
+
+		var savedLimit = buffer.limit();
+		buffer.limit(buffer.position() + charsetSize);
+
+		var charsetName = ASCII_CHARSET.decode(buffer).toString();
+		if (!Charset.availableCharsets().containsKey(charsetName)) {
+			return Optional.empty();
+		}
+
+		var charset = Charset.forName(charsetName);
+		buffer.limit(savedLimit);
+
+		return Optional.of(charset.decode(buffer).toString());
 	}
 
 	public static void usage() {
