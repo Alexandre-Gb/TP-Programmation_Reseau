@@ -37,10 +37,6 @@ public class ClientBetterUpperCaseUDP {
 		Objects.requireNonNull(msg);
 		Objects.requireNonNull(charsetName);
 
-		if (msg.isBlank()) {
-			return Optional.empty();
-		}
-
 		var encCharsetSize = ByteBuffer.allocate(Integer.BYTES)
 						.putInt(charsetName.length());
 		encCharsetSize.flip();
