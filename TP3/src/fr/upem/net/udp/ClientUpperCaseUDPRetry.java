@@ -28,7 +28,6 @@ public class ClientUpperCaseUDPRetry {
         var blockingQueue = new ArrayBlockingQueue<String>(10);
         var server = new InetSocketAddress(args[0], Integer.parseInt(args[1]));
         var cs = Charset.forName(args[2]);
-        var buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
         try (var scanner = new Scanner(System.in)) {
             try (var dc = DatagramChannel.open()) {
