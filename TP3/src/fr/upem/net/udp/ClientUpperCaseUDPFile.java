@@ -64,10 +64,10 @@ public class ClientUpperCaseUDPFile {
             // The sender will interrupt, note that "return" can be ignored if its outside of the while
             return;
           } catch (ClosedByInterruptException e) {
-            logger.info("Listener thread interrupted while waiting in receive, closing...");
+            logger.info("Listener thread interrupted while waiting in receive, closing receiver...");
             return;
           } catch (AsynchronousCloseException e ) {
-            logger.warning("Datagram closed on receive, closing...");
+            logger.info("Datagram closed on receive, closing receiver...");
             return;
           } catch (ClosedChannelException e) {
             logger.warning("Attemtping receive on closed channel.");
@@ -79,28 +79,23 @@ public class ClientUpperCaseUDPFile {
         }
       });
 
-      var sender = Thread.ofPlatform().start(() -> {
-        for (var line : lines) {
-          try {
+      for (var line : lines) {
+        try {
+          dc.send(UTF8.encode(line), server);
+          String response;
+          while ((response = blockingQueue.poll(timeout, TimeUnit.MILLISECONDS)) == null) {
+            System.out.println("Nothing received, sending again: " + line);
             dc.send(UTF8.encode(line), server);
-            String response;
-            while ((response = blockingQueue.poll(timeout, TimeUnit.MILLISECONDS)) == null) {
-              System.out.println("Nothing received, sending again: " + line);
-              dc.send(UTF8.encode(line), server);
-            }
-            System.out.println("String: " + response);
-            upperCaseLines.add(response);
-          } catch (InterruptedException e) {
-            throw new AssertionError(e);
-          } catch (IOException e) {
-            logger.severe("IOException occured on sender.");
-            throw new AssertionError(e);
           }
+          System.out.println("String: " + response);
+          upperCaseLines.add(response);
+        } catch (InterruptedException e) {
+          throw new AssertionError(e);
+        } catch (IOException e) {
+          logger.severe("IOException occured on sender.");
+          throw new AssertionError(e);
         }
-      });
-
-      receiver.interrupt();
-      sender.join();
+      }
     }
 
     // Write upperCaseLines to outFilename in UTF-8
