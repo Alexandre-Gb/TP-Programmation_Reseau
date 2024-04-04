@@ -3,6 +3,9 @@ package fr.upem.net.udp;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -55,29 +58,49 @@ public class ClientUpperCaseUDPFile {
             receiverBuffer.flip();
             System.out.println("Received " + receiverBuffer.remaining() + " bytes from " + dst);
             blockingQueue.put(UTF8.decode(receiverBuffer).toString());
-          } catch (IOException e ) {
-            logger.log(Level.WARNING, "IOException occured", e);
-            throw new AssertionError(e);
           } catch (InterruptedException e) {
-            return; // The sender will interrupt
+            logger.log(Level.INFO, "Listener throws interrupted on put, closing...");
+
+            // The sender will interrupt, note that "return" can be ignored if its outside of the while
+            return;
+          } catch (ClosedByInterruptException e) {
+            logger.info("Listener thread interrupted while waiting in receive, closing...");
+            return;
+          } catch (AsynchronousCloseException e ) {
+            logger.warning("Datagram closed on receive, closing...");
+            return;
+          } catch (ClosedChannelException e) {
+            logger.warning("Attemtping receive on closed channel.");
+            return;
+          } catch (IOException e) {
+            logger.severe("IOException occured while waiting on receive.");
+            throw new AssertionError(e);
           }
         }
       });
 
-      for (var line : lines) {
-        dc.send(UTF8.encode(line), server);
-
-        String response;
-        while ((response = blockingQueue.poll(timeout, TimeUnit.MILLISECONDS)) == null) {
-          System.out.println("Nothing received, sending again: " + line);
-          dc.send(UTF8.encode(line), server);
+      var sender = Thread.ofPlatform().start(() -> {
+        for (var line : lines) {
+          try {
+            dc.send(UTF8.encode(line), server);
+            String response;
+            while ((response = blockingQueue.poll(timeout, TimeUnit.MILLISECONDS)) == null) {
+              System.out.println("Nothing received, sending again: " + line);
+              dc.send(UTF8.encode(line), server);
+            }
+            System.out.println("String: " + response);
+            upperCaseLines.add(response);
+          } catch (InterruptedException e) {
+            throw new AssertionError(e);
+          } catch (IOException e) {
+            logger.severe("IOException occured on sender.");
+            throw new AssertionError(e);
+          }
         }
-
-        System.out.println("String: " + response);
-        upperCaseLines.add(response);
-      }
+      });
 
       receiver.interrupt();
+      sender.join();
     }
 
     // Write upperCaseLines to outFilename in UTF-8
