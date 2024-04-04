@@ -28,7 +28,7 @@ public class ClientUpperCaseUDPFile {
     System.out.println("Usage : ClientUpperCaseUDPFile in-filename out-filename timeout host port ");
   }
 
-  public static void main(String[] args) throws IOException, InterruptedException {
+  public static void main(String[] args) throws IOException {
     if (args.length != 5) {
       usage();
       return;
@@ -47,7 +47,7 @@ public class ClientUpperCaseUDPFile {
     try (var dc = DatagramChannel.open()) {
       dc.bind(null);
 
-      var receiver = Thread.ofPlatform().start(() -> {
+      Thread.ofPlatform().start(() -> {
         var receiverBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
 
         for (;;) {
