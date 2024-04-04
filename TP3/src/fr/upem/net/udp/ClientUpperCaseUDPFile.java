@@ -69,9 +69,6 @@ public class ClientUpperCaseUDPFile {
           } catch (AsynchronousCloseException e ) {
             logger.info("Datagram closed on receive, closing receiver...");
             return;
-          } catch (ClosedChannelException e) {
-            logger.warning("Attemtping receive on closed channel.");
-            return;
           } catch (IOException e) {
             logger.severe("IOException occured while waiting on receive.");
             throw new AssertionError(e);
@@ -81,20 +78,24 @@ public class ClientUpperCaseUDPFile {
 
       for (var line : lines) {
         try {
-          dc.send(UTF8.encode(line), server);
+          var encodedLine = UTF8.encode(line);
+
+          dc.send(encodedLine, server);
           String response;
           while ((response = blockingQueue.poll(timeout, TimeUnit.MILLISECONDS)) == null) {
             System.out.println("Nothing received, sending again: " + line);
-            dc.send(UTF8.encode(line), server);
+            dc.send(encodedLine, server);
           }
+
           System.out.println("String: " + response);
           upperCaseLines.add(response);
         } catch (InterruptedException e) {
           throw new AssertionError(e);
-        } catch (IOException e) {
-          logger.severe("IOException occured on sender.");
-          throw new AssertionError(e);
         }
+        /*
+        * We do not catch any other exception as we cant really do anything smart in order to correct them
+        * we only specify it in the main method signature.
+        */
       }
     }
 
