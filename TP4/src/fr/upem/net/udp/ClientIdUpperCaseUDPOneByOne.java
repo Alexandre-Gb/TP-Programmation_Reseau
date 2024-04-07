@@ -76,9 +76,10 @@ public class ClientIdUpperCaseUDPOneByOne {
 		var begin = System.currentTimeMillis();
 		var current = begin;
 		Response response = null;
+
 		while (current - begin < timeout) {
 			if (response == null) {
-				response = queue.poll(timeout - (current - begin), TimeUnit.MILLISECONDS);
+				response = queue.poll(begin - (current - timeout), TimeUnit.MILLISECONDS);
 			}
 			current = System.currentTimeMillis();
 		}
@@ -95,7 +96,6 @@ public class ClientIdUpperCaseUDPOneByOne {
 
 			var upperCaseLines = new ArrayList<String>();
 
-			// TODO
 			var exchangeId = 0L;
 			var bb = ByteBuffer.allocate(BUFFER_SIZE);
 			for (var line : lines) {
@@ -118,6 +118,7 @@ public class ClientIdUpperCaseUDPOneByOne {
 						logger.info("Invalid id, dropping packet.");
 						continue;
 					}
+
 					upperCaseLines.add(response.message());
 					exchangeId++;
 					break;
