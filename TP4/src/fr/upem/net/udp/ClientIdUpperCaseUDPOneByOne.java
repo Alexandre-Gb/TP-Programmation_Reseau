@@ -25,7 +25,7 @@ public class ClientIdUpperCaseUDPOneByOne {
 	private static final Charset UTF8 = StandardCharsets.UTF_8;
 	private static final int BUFFER_SIZE = 1024;
 
-	private record Response(long id, String message) { };
+	private record Response(long id, String message) { }
 
 	private final String inFilename;
 	private final String outFilename;

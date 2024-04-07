@@ -16,14 +16,11 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
 public class ClientIdUpperCaseUDPBurst {
-  private static Logger logger = Logger.getLogger(ClientIdUpperCaseUDPBurst.class.getName());
+  private static final Logger logger = Logger.getLogger(ClientIdUpperCaseUDPBurst.class.getName());
   private static final Charset UTF8 = StandardCharsets.UTF_8;
   private static final int BUFFER_SIZE = 1024;
   private final List<String> lines;
@@ -105,7 +102,7 @@ public class ClientIdUpperCaseUDPBurst {
     dc.close();
   }
 
-  public static void main(String[] args) throws IOException, InterruptedException {
+  public static void main(String[] args) throws IOException {
     if (args.length != 5) {
       usage();
       return;
@@ -113,9 +110,9 @@ public class ClientIdUpperCaseUDPBurst {
 
     String inFilename = args[0];
     String outFilename = args[1];
-    int timeout = Integer.valueOf(args[2]);
+    int timeout = Integer.parseInt(args[2]);
     String host = args[3];
-    int port = Integer.valueOf(args[4]);
+    int port = Integer.parseInt(args[4]);
     InetSocketAddress serverAddress = new InetSocketAddress(host, port);
 
     //Read all lines of inFilename opened in UTF-8
