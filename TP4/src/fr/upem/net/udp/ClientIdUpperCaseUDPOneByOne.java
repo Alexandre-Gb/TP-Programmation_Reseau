@@ -79,7 +79,7 @@ public class ClientIdUpperCaseUDPOneByOne {
 
 		while (current - begin < timeout) {
 			if (response == null) {
-				response = queue.poll(begin - (current - timeout), TimeUnit.MILLISECONDS);
+				response = queue.poll(timeout - (current - begin), TimeUnit.MILLISECONDS);
 			}
 			current = System.currentTimeMillis();
 		}
