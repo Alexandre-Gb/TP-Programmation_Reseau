@@ -5,17 +5,12 @@ import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 import java.util.logging.Logger;
 
 public class ServerLongSumUDP {
   private static final Logger logger = Logger.getLogger(ServerLongSumUDP.class.getName());
-  private static final Charset UTF8 = StandardCharsets.UTF_8;
   private static final int BUFFER_SIZE = 1024;
 
   private final DatagramChannel dc;
