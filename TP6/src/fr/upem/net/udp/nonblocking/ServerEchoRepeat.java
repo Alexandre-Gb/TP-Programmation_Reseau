@@ -71,8 +71,8 @@ public class ServerEchoRepeat {
     }
 
     private void doWrite(SelectionKey key) throws IOException {
-        var sent = dc.send(buffer, sender);
-        if (sent == 0) {
+        dc.send(buffer, sender);
+        if (buffer.hasRemaining()) {
             logger.warning("Could not send packet to " + sender);
             return;
         }
