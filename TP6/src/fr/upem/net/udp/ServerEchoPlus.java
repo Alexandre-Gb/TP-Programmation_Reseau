@@ -10,17 +10,18 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.logging.Logger;
 
-public class ServerEcho {
-    private static final Logger logger = Logger.getLogger(ServerEcho.class.getName());
+public class ServerEchoPlus {
+    private static final Logger logger = Logger.getLogger(ServerEchoPlus.class.getName());
 
     private final DatagramChannel dc;
     private final Selector selector;
     private final int BUFFER_SIZE = 1024;
-    private final ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
+    private final ByteBuffer bufferIn = ByteBuffer.allocateDirect(BUFFER_SIZE);
+    private final ByteBuffer bufferOut = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private SocketAddress sender;
     private int port;
 
-    public ServerEcho(int port) throws IOException {
+    public ServerEchoPlus(int port) throws IOException {
         this.port = port;
         selector = Selector.open();
         dc = DatagramChannel.open();
@@ -35,7 +36,6 @@ public class ServerEcho {
             try {
                 selector.select(this::treatKey);
             } catch (UncheckedIOException tunneled) {
-                // On récupère l'UncheckedIO de treatKey et on en revoi la cause
                 throw tunneled.getCause();
             }
         }
@@ -50,32 +50,31 @@ public class ServerEcho {
                 doRead(key);
             }
         } catch (IOException ioe) {
-            // Etant donné que l'on passe par une lambda (treatkey depuis serve()), l'IOException ne va
-            // pas se propager. On va donc renvoyer une UncheckedIO qui va bien se propager
             throw new UncheckedIOException(ioe);
         }
     }
 
     private void doRead(SelectionKey key) throws IOException {
-        buffer.clear();
-        sender = dc.receive(buffer);
+        bufferIn.clear();
+        sender = dc.receive(bufferIn);
         if (sender == null) {
-            // Par convention on met en warning, mais on peut aussi mettre en info car la doc du Selector
-            // prévoit que ça peut mal fonctionner
             logger.warning("No packet received (No SocketAddress).");
             return;
         }
         logger.info("Received packet from " + sender);
         key.interestOps(SelectionKey.OP_WRITE);
 
-        // Attention, si l'envoi échoue dans le doWrite, on va re-flip, ce qui va poser un énorme problème évident
-        // On flip donc dans le read car on n'y passe systématiquement qu'une fois
-        buffer.flip();
+        bufferIn.flip();
+
+        bufferOut.clear();
+        while (bufferIn.hasRemaining()) {
+            bufferOut.put((byte) (bufferIn.get() + 1));
+        }
+        bufferOut.flip();
     }
 
     private void doWrite(SelectionKey key) throws IOException {
-        // buffer.flip(); NON!!!!!
-        var sent = dc.send(buffer, sender);
+        var sent = dc.send(bufferOut, sender);
         if (sent == 0) {
             logger.warning("Could not send packet to " + sender);
             return;
@@ -95,3 +94,4 @@ public class ServerEcho {
         new ServerEcho(Integer.parseInt(args[0])).serve();
     }
 }
+
