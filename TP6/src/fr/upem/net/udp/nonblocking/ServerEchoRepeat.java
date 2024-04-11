@@ -12,12 +12,12 @@ import java.util.logging.Logger;
 
 public class ServerEchoRepeat {
     private static final Logger logger = Logger.getLogger(ServerEchoRepeat.class.getName());
-
+    private final int BUFFER_SIZE = 1024;
     private final ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private final DatagramChannel dc;
     private final Selector selector;
     private SocketAddress sender;
-    private int port;
+    private final int port;
     private int nbRepeatLeft;
 
     public ServerEchoRepeat(int port) throws IOException {

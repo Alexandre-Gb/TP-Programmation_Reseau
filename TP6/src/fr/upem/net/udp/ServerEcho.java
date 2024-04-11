@@ -18,7 +18,7 @@ public class ServerEcho {
     private final int BUFFER_SIZE = 1024;
     private final ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private SocketAddress sender;
-    private int port;
+    private final int port;
 
     public ServerEcho(int port) throws IOException {
         this.port = port;
