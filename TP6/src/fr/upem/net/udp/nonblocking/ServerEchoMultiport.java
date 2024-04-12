@@ -36,6 +36,33 @@ public class ServerEchoMultiport {
     private static class Context {
         private final ByteBuffer bb = ByteBuffer.allocateDirect(BUFFER_SIZE);
         private SocketAddress address;
+
+        private void doRead(SelectionKey key) throws IOException {
+            var dc = (DatagramChannel) key.channel();
+            bb.clear();
+
+            address = dc.receive(bb);
+            if (address == null) {
+                logger.warning("No packet received (No SocketAddress).");
+                return;
+            }
+
+            bb.flip();
+            logger.info("Received packet from " + address);
+            key.interestOps(SelectionKey.OP_WRITE);
+        }
+
+        private void doWrite(SelectionKey key) throws IOException {
+            var dc = (DatagramChannel) key.channel();
+
+            dc.send(bb, address);
+            if (bb.hasRemaining()) {
+                logger.warning("Could not send packet to " + address);
+                return;
+            }
+
+            key.interestOps(SelectionKey.OP_READ);
+        }
     }
 
     private void registerPort(int port) throws IOException, AlreadyBoundException {
@@ -58,45 +85,18 @@ public class ServerEchoMultiport {
     }
 
     private void treatKey(SelectionKey key) {
+        var context = (Context) key.attachment();
+
         try {
             if (key.isValid() && key.isWritable()) {
-                doWrite(key);
+                context.doWrite(key);
             }
             if (key.isValid() && key.isReadable()) {
-                doRead(key);
+                context.doRead(key);
             }
         } catch (IOException ioe) {
             throw new UncheckedIOException(ioe);
         }
-    }
-
-    private void doRead(SelectionKey key) throws IOException {
-        var dc = (DatagramChannel) key.channel();
-        var context = (Context) key.attachment();
-        context.bb.clear();
-
-        context.address = dc.receive(context.bb);
-        if (context.address == null) {
-            logger.warning("No packet received (No SocketAddress).");
-            return;
-        }
-
-        context.bb.flip();
-        logger.info("Received packet from " + context.address);
-        key.interestOps(SelectionKey.OP_WRITE);
-    }
-
-    private void doWrite(SelectionKey key) throws IOException {
-        var dc = (DatagramChannel) key.channel();
-        var context = (Context) key.attachment();
-
-        dc.send(context.bb, context.address);
-        if (context.bb.hasRemaining()) {
-            logger.warning("Could not send packet to " + context.address);
-            return;
-        }
-
-        key.interestOps(SelectionKey.OP_READ);
     }
 
     public static void usage() {
