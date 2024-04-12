@@ -100,7 +100,7 @@ public class ServerEchoMultiport {
     }
 
     public static void usage() {
-        System.out.println("Usage : ServerEchoRepeat port_range_begin port_range_end");
+        System.out.println("Usage : ServerEchoMultiport port_range_begin port_range_end");
     }
 
     public static void main(String[] args) throws IOException {
