@@ -9,8 +9,6 @@ import java.nio.channels.AlreadyBoundException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Logger;
 
 public class ServerEchoMultiport {
