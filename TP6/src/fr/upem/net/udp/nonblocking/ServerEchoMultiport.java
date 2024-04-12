@@ -18,8 +18,10 @@ public class ServerEchoMultiport {
 
     public ServerEchoMultiport(int portBegin, int portEnd) throws IOException {
         if ((portBegin < 1024 || portBegin > 65535) && (portEnd < 1024 || portEnd > 65535)) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Port out of range [1024, 65535]");
         }
+
+        if (portBegin > portEnd) { throw new IllegalArgumentException("Port range is invalid."); }
 
         selector = Selector.open();
         for (int i = portBegin; i <= portEnd; i++) {
