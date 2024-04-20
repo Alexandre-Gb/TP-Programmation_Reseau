@@ -4,7 +4,6 @@ package fr.uge.net.udp.exam2223.ex2;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetSocketAddress;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.charset.Charset;
@@ -154,7 +153,6 @@ public class ServerChat {
       server.serve();
     } catch (BindException e) {
       System.err.println("Server could not bind on " + port + "\nAnother server is probably running on this port.");
-      return;
     }
   }
 }
