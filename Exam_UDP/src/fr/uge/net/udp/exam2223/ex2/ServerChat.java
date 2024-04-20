@@ -33,18 +33,22 @@ public class ServerChat {
       return Optional.ofNullable(users.get(user));
     }
 
-    boolean exists(String user) {
+    boolean userExists(String user) {
       return users.containsKey(user);
     }
 
+    boolean socketExists(InetSocketAddress dst) {
+      return users.containsValue(dst);
+    }
+
     void add(String user, InetSocketAddress dst) {
-      if (!exists(user)) {
+      if (!userExists(user) && !socketExists(dst)) {
         users.put(user, dst);
       }
     }
 
     boolean isSocketValid(String user, InetSocketAddress dst) {
-      return exists(user) && users.get(user).equals(dst);
+      return userExists(user) && users.get(user).equals(dst);
     }
   }
 
@@ -105,7 +109,11 @@ public class ServerChat {
         var message = getStrFromBuffer(buffer, msgSize);
         logger.info("Packet from " + sender + " to " + recipient + " :\n" + message);
 
-        if (!sessionHolder.exists(sender)) {
+        if (!sessionHolder.userExists(sender)) {
+          if (sessionHolder.socketExists(dst)) {
+            logger.warning("Socket already in use, dropping...");
+            continue;
+          }
           sessionHolder.add(sender, dst);
           logger.info("Adding sender " + sender + " to sessionHolder.");
         } else {
