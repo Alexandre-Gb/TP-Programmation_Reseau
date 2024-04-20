@@ -3,23 +3,29 @@ package fr.uge.net.udp.exam2223.ex1;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
 import java.nio.channels.DatagramChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-
 
 import static java.nio.file.StandardOpenOption.*;
 
-public class ClientPokemon {
+public class ClientPokemonFull {
   private static final int BUFSIZ_SEND = 1024;
   private static final int BUFSIZ_RECEIVE = 2048;
+  private static final int TIMEOUT = 300;
   private static final Charset UTF8 = StandardCharsets.UTF_8;
-  private static final Logger logger = Logger.getLogger(ClientPokemon.class.getName());
+  private static final Logger logger = Logger.getLogger(ClientPokemonFull.class.getName());
 
   private final String inFilename;
   private final String outFilename;
@@ -50,8 +56,8 @@ public class ClientPokemon {
     System.out.println("Usage : ClientPokemon in-filename out-filename host port ");
   }
 
-  public ClientPokemon(String inFilename, String outFilename,
-                       InetSocketAddress server) throws IOException {
+  public ClientPokemonFull(String inFilename, String outFilename,
+                           InetSocketAddress server) throws IOException {
     this.inFilename = Objects.requireNonNull(inFilename);
     this.outFilename = Objects.requireNonNull(outFilename);
     this.server = server;
@@ -100,31 +106,64 @@ public class ClientPokemon {
     try {
       datagramChannel.bind(null);
       var pokemonNames = Files.readAllLines(Path.of(inFilename), UTF8);
+      var pokemonQueue = new ArrayBlockingQueue<Pokemon>(pokemonNames.size());
       var pokemons = new ArrayList<Pokemon>();
 
-      var buffer = ByteBuffer.allocateDirect(BUFSIZ_SEND);
+      Thread.ofPlatform().start(() -> {
+        var receiveBuffer = ByteBuffer.allocateDirect(BUFSIZ_RECEIVE);
+        for (;;) {
+          try {
+            receiveBuffer.clear();
+            var dst = (InetSocketAddress) datagramChannel.receive(receiveBuffer);
+            receiveBuffer.flip();
+            logger.info("Received " + receiveBuffer.remaining() + " bytes from " + dst);
+
+            var name = pokemonName(receiveBuffer);
+            if (!pokemonNames.contains(name)) {
+              logger.warning("Invalid pokémon name:" + name + ". Dropping ...");
+              continue;
+            }
+            logger.info("Received pokemon: " + name);
+            pokemonQueue.add(new Pokemon(name, pokemonCharacteristics(receiveBuffer)));
+          } catch (AsynchronousCloseException e) {
+            logger.info("Channel closed, stopping receiver.");
+            return;
+          } catch (IOException e) {
+            logger.warning("IOException occured on receiver.");
+            return;
+          }
+        }
+      });
+
+      var sendBuffer = ByteBuffer.allocateDirect(BUFSIZ_SEND);
 
       for (var pokemonName : pokemonNames) {
-        buffer.clear();
+        sendBuffer.clear();
         var encode = UTF8.encode(pokemonName);
-        buffer.putInt(encode.remaining());
-        buffer.put(encode);
-        buffer.flip();
+        sendBuffer.putInt(encode.remaining());
+        sendBuffer.put(encode);
+        sendBuffer.flip();
         logger.info("Sending " + pokemonName + " to " + server);
-        datagramChannel.send(buffer, server);
+        datagramChannel.send(sendBuffer, server);
 
-        buffer.clear();
-        var dst = (InetSocketAddress) datagramChannel.receive(buffer);
-        buffer.flip();
-        logger.info("Received " + buffer.remaining() + " bytes from " + dst);
+        for (;;) {
+          var response = pokemonQueue.poll(TIMEOUT, TimeUnit.MILLISECONDS);
+          if (response == null) {
+            logger.info("Timeout expired. Sending " + pokemonName + " again.");
+            sendBuffer.flip();
+            datagramChannel.send(sendBuffer, server);
+            continue;
+          }
 
-        var name = pokemonName(buffer);
-        if (!pokemonNames.contains(name)) {
-          logger.warning("Invalid pokémon name:" + name + ". Dropping ...");
-          continue;
+          if (!response.name().equals(pokemonName)) {
+            logger.info("Invalid pokemon, dropping....");
+            continue;
+          }
+
+          logger.info("Received pokemon " + pokemonName + ". Adding to list.");
+          pokemons.add(response);
+          break;
         }
-        logger.info("Received pokemon: " + name);
-        pokemons.add(new Pokemon(name, pokemonCharacteristics(buffer)));
       }
 
       // Convert the pokemons to strings and write then in the output file
@@ -147,6 +186,6 @@ public class ClientPokemon {
     var server = new InetSocketAddress(args[2], Integer.parseInt(args[3]));
 
     // Create client with the parameters and launch it
-    new ClientPokemon(inFilename, outFilename, server).launch();
+    new ClientPokemonFull(inFilename, outFilename, server).launch();
   }
 }
