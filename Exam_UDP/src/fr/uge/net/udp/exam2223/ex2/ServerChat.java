@@ -37,13 +37,10 @@ public class ServerChat {
       return users.containsKey(user);
     }
 
-    boolean tryAdd(String user, InetSocketAddress dst) {
-      if (exists(user)) {
-        return false;
+    void add(String user, InetSocketAddress dst) {
+      if (!exists(user)) {
+        users.put(user, dst);
       }
-
-      users.put(user, dst);
-      return true;
     }
 
     boolean isSocketValid(String user, InetSocketAddress dst) {
@@ -103,9 +100,8 @@ public class ServerChat {
         logger.info("Packet from " + sender + " to " + recipient + " :\n" + message);
 
         if (!sessionHolder.exists(sender)) {
-          if (sessionHolder.tryAdd(sender, dst)) {
-            logger.info("Adding sender " + sender + " to sessionHolder.");
-          }
+          sessionHolder.add(sender, dst);
+          logger.info("Adding sender " + sender + " to sessionHolder.");
         } else {
           if (!sessionHolder.isSocketValid(sender, dst)) {
             logger.warning("Socket invalid for user " + sender + ", dropping...");
