@@ -49,9 +49,15 @@ public class ServerChat {
   }
 
   public static String getStrFromBuffer(ByteBuffer buffer, int dst) {
-    var str = new byte[dst];
-    buffer.get(str);
-    return new String(str, UTF8);
+    if (buffer.remaining() < dst) { throw new IllegalArgumentException("Buffer underflow"); }
+
+    var byteBuffer = ByteBuffer.allocate(dst);
+    for (int i = 0; i < dst; i++) {
+      byteBuffer.put(buffer.get());
+    }
+    byteBuffer.flip();
+
+    return UTF8.decode(byteBuffer).toString();
   }
 
   public void serve() throws IOException {
