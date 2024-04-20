@@ -37,12 +37,12 @@ public class ServerChat {
       return users.containsKey(user);
     }
 
-    boolean socketExists(InetSocketAddress dst) {
-      return users.containsValue(dst);
-    }
+//    boolean socketExists(InetSocketAddress dst) {
+//      return users.containsValue(dst);
+//    }
 
     void add(String user, InetSocketAddress dst) {
-      if (!userExists(user) && !socketExists(dst)) {
+      if (!userExists(user)) {
         users.put(user, dst);
       }
     }
@@ -52,16 +52,12 @@ public class ServerChat {
     }
   }
 
-  public static String getStrFromBuffer(ByteBuffer buffer, int dst) {
-    if (buffer.remaining() < dst) { throw new IllegalArgumentException("Buffer underflow"); }
-
-    var byteBuffer = ByteBuffer.allocate(dst);
-    for (int i = 0; i < dst; i++) {
-      byteBuffer.put(buffer.get());
-    }
-    byteBuffer.flip();
-
-    return UTF8.decode(byteBuffer).toString();
+  private String getStrFromBuffer(ByteBuffer buffer, int dst) {
+    var tmpLimit = buffer.limit();
+    buffer.limit(buffer.position() + dst);
+    var str = UTF8.decode(buffer).toString();
+    buffer.limit(tmpLimit);
+    return str;
   }
 
   public void serve() throws IOException {
@@ -110,10 +106,6 @@ public class ServerChat {
         logger.info("Packet from " + sender + " to " + recipient + " :\n" + message);
 
         if (!sessionHolder.userExists(sender)) {
-          if (sessionHolder.socketExists(dst)) {
-            logger.warning("Socket already in use, dropping...");
-            continue;
-          }
           sessionHolder.add(sender, dst);
           logger.info("Adding sender " + sender + " to sessionHolder.");
         } else {
