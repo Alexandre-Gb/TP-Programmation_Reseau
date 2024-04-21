@@ -125,7 +125,6 @@ public class ClientAuthFull {
       var lines = Files.readAllLines(Path.of(inFilename), UTF8);
       var users = lines.stream().map(User::fromLine).collect(Collectors.toList());
       var answers = new ArrayList<String>();
-      var queue = new ArrayBlockingQueue<Response>(users.size());
       var exchangeId = 0L;
 
       Thread.ofPlatform().start(this::listenerThreadRun);
