@@ -67,7 +67,7 @@ public class ClientAuth {
       var lines = Files.readAllLines(Path.of(inFilename), UTF8);
       var users = lines.stream().map(User::fromLine).collect(Collectors.toList());
       var answers = new ArrayList<String>();
-      var buffer = ByteBuffer.allocateDirect(BUFFER_SIZE * 2);
+      var buffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
       var id = 0L;
 
       for (var user : users) {
@@ -88,16 +88,12 @@ public class ClientAuth {
         // Receive
         buffer.clear();
         var dst = (InetSocketAddress) dc.receive(buffer);
-        if (!dst.equals(server)) {
-          logger.warning("Response from incorrect socket.");
-          continue;
-        }
+//        if (!dst.equals(server)) {
+//          logger.warning("Response from incorrect socket.");
+//          continue;
+//        }
 
         buffer.flip();
-        if (buffer.remaining() > BUFFER_SIZE) {
-          logger.warning("Data is too large, dropping...");
-          continue;
-        }
         logger.info("Received " + buffer.remaining() + " bytes from " + dst);
 
         if (buffer.remaining() < (Long.BYTES + Integer.BYTES)) {
