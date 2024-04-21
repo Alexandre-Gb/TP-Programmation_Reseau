@@ -12,8 +12,7 @@ import java.util.logging.Logger;
 public class ServerSlice {
   private static final int BUFSIZ = Long.BYTES * 128;
   private static final Logger logger = Logger.getLogger(ServerSlice.class.getName());
-  private final ByteBuffer sendBuffer = ByteBuffer.allocateDirect(BUFSIZ);
-  private final ByteBuffer receiveBuffer = ByteBuffer.allocateDirect(BUFSIZ);
+  private final ByteBuffer buffer = ByteBuffer.allocateDirect(BUFSIZ);
   private final DatagramChannel datagramChannel;
   private final Selector selector;
   private InetSocketAddress sender;
@@ -49,29 +48,33 @@ public class ServerSlice {
   }
 
   private void doRead(SelectionKey key) throws IOException {
-    receiveBuffer.clear();
-    sender = (InetSocketAddress) datagramChannel.receive(receiveBuffer);
+    buffer.clear();
+    sender = (InetSocketAddress) datagramChannel.receive(buffer);
     if (sender == null) {
       logger.warning("Could not receive any packet.");
       return;
     }
 
-    logger.info("Received " + receiveBuffer.remaining() + " bytes from " + sender);
+    buffer.flip();
+    logger.info("Received " + buffer.remaining() + " bytes from " + sender);
     key.interestOps(SelectionKey.OP_WRITE);
-    receiveBuffer.flip();
   }
 
   private void doWrite(SelectionKey key) throws IOException {
-    if (sendBuffer.remaining() < Long.BYTES) {
+    if (buffer.remaining() < Long.BYTES) {
       logger.info("All longs has been sent as slices.");
       key.interestOps(SelectionKey.OP_READ);
       return;
     }
 
-    if (receiveBuffer.hasRemaining()) {
+    var limitTmp = buffer.limit();
+    buffer.limit(buffer.position() + Long.BYTES);
+    datagramChannel.send(buffer, sender);
+    if (buffer.hasRemaining()) {
       logger.warning("Could not send any data to " + sender);
-      return;
+      buffer.position(buffer.position() - Long.BYTES);
     }
+    buffer.limit(limitTmp);
   }
 
   public static void usage() {
