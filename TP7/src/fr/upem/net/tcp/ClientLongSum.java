@@ -39,17 +39,14 @@ public class ClientLongSum {
         logger.info("Sending " + sendBuffer.remaining() + " bytes to " + dst);
         sc.write(sendBuffer);
 
-        if (ClientEOS.readFully(sc, receiveBuffer)) {
-            receiveBuffer.flip();
-            logger.info("Received " + receiveBuffer.remaining() + " bytes from " + dst);
-            if (receiveBuffer.remaining() == Long.BYTES) {
-                return receiveBuffer.getLong();
-            }
-
+        if (!ClientEOS.readFully(sc, receiveBuffer)) {
             logger.warning("Invalid format, dropping...");
+            return null;
         }
 
-        return null;
+        receiveBuffer.flip();
+        logger.info("Received " + receiveBuffer.remaining() + " bytes from " + dst);
+        return receiveBuffer.getLong();
     }
 
     public static void main(String[] args) throws IOException {

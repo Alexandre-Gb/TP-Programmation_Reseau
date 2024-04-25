@@ -70,8 +70,6 @@ public class ClientConcatenation {
         logger.info("Sending " + sendBuffer.remaining() + " bytes to " + dst);
         sc.write(sendBuffer);
 
-        sc.shutdownOutput(); // No more data to send
-
         if (!ClientEOS.readFully(sc, receiveBuffer)) {
             logger.warning("Invalid format, dropping...");
             return null;
