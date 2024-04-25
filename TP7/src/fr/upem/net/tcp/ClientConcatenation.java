@@ -77,6 +77,10 @@ public class ClientConcatenation {
 
         receiveBuffer.flip();
         var receiverSize = receiveBuffer.getInt();
+        if (receiverSize < 0) {
+            logger.warning("Invalid format, dropping...");
+            return null;
+        }
         logger.info("Size of response: " + receiverSize);
         receiveBuffer = ByteBuffer.allocate(receiverSize);
 
