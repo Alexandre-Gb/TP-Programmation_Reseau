@@ -46,15 +46,18 @@ public class ClientEOS {
       sc.write(sendBuffer);
       sc.shutdownOutput(); // Close write-channel
 
-      var read = sc.read(receiveBuffer);
-      if (read == -1) {
-        logger.info("Connection closed for reading. Could not receive any data from " + server);
-      } else {
-        receiveBuffer.flip();
-        logger.info("Received " + receiveBuffer.remaining() + " bytes from " + server);
+      while (receiveBuffer.hasRemaining()) {
+        var read = sc.read(receiveBuffer);
+        logger.info("Received " + read + " bytes from " + server);
+        if (read == -1) {
+          logger.info("Connection closed for reading. Could not receive any data from " + server);
+          break;
+        }
       }
     }
 
+    receiveBuffer.flip();
+    logger.info("Received " + receiveBuffer.remaining() + " bytes from " + server);
     return UTF8_CHARSET.decode(receiveBuffer).toString();
   }
 
@@ -85,15 +88,16 @@ public class ClientEOS {
       sc.write(sendBuffer);
       sc.shutdownOutput(); // Close write-channel
 
-      var builder = new StringBuilder();
       while (sc.read(receiveBuffer) != -1) {
-        receiveBuffer.flip();
-        logger.info("Received " + receiveBuffer.remaining() + " bytes from " + server);
-        builder.append(UTF8_CHARSET.decode(receiveBuffer));
-        receiveBuffer.clear();
+        if (!receiveBuffer.hasRemaining()) {
+          logger.info("Full, expanding buffer...");
+          receiveBuffer = expandBuffer(receiveBuffer);
+        }
       }
-      logger.info("Connection closed for reading.");
-      return builder.toString();
+
+      receiveBuffer.flip();
+      logger.info("Connection closed for reading.\nReceived " + receiveBuffer.remaining() + " bytes from " + server);
+      return UTF8_CHARSET.decode(receiveBuffer).toString();
     }
   }
 
@@ -124,15 +128,16 @@ public class ClientEOS {
       sc.write(sendBuffer);
       sc.shutdownOutput(); // Close write-channel
 
-      var builder = new StringBuilder();
       while (readFully(sc, receiveBuffer)) {
-        receiveBuffer.flip();
-        logger.info("Received " + receiveBuffer.remaining() + " bytes from " + server);
-        builder.append(UTF8_CHARSET.decode(receiveBuffer));
-        receiveBuffer.clear();
+        if (!receiveBuffer.hasRemaining()) {
+          logger.info("Full, expanding buffer...");
+          receiveBuffer = expandBuffer(receiveBuffer);
+        }
       }
 
-      return builder.toString();
+      receiveBuffer.flip();
+      logger.info("Connection closed for reading.\nReceived " + receiveBuffer.remaining() + " bytes from " + server);
+      return UTF8_CHARSET.decode(receiveBuffer).toString();
     }
   }
 
@@ -152,6 +157,10 @@ public class ClientEOS {
     }
 
     return true;
+  }
+
+  static ByteBuffer expandBuffer(ByteBuffer buffer) {
+    return ByteBuffer.allocate(buffer.capacity() * 2).put(buffer.flip());
   }
 
   public static void main(String[] args) throws IOException {
