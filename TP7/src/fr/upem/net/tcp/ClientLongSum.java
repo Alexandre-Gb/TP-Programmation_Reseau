@@ -8,8 +8,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 public class ClientLongSum {
-
-    public static final Logger logger = Logger.getLogger(ClientLongSum.class.getName());
+    private static final Logger logger = Logger.getLogger(ClientLongSum.class.getName());
 
     private static List<Long> randomLongList(int size) {
         return new Random().longs(size).boxed().toList();
@@ -29,30 +28,25 @@ public class ClientLongSum {
      * @param list The long values to send to the server
      * @return Result of the operation
      */
-    private static Long requestSumForList(SocketChannel sc, List<Long> list) {
-        try {
-            var dst = sc.getRemoteAddress();
-            var sendBuffer = ByteBuffer.allocate(Integer.BYTES + (list.size() * Long.BYTES));
-            var receiveBuffer = ByteBuffer.allocate(Long.BYTES);
+    private static Long requestSumForList(SocketChannel sc, List<Long> list) throws IOException {
+        var dst = sc.getRemoteAddress();
+        var sendBuffer = ByteBuffer.allocate(Integer.BYTES + (list.size() * Long.BYTES));
+        var receiveBuffer = ByteBuffer.allocate(Long.BYTES);
 
-            sendBuffer.putInt(list.size());
-            list.forEach(sendBuffer::putLong);
+        sendBuffer.putInt(list.size());
+        list.forEach(sendBuffer::putLong);
+        sendBuffer.flip();
+        logger.info("Sending " + sendBuffer.remaining() + " bytes to " + dst);
+        sc.write(sendBuffer);
 
-            sendBuffer.flip();
-            logger.info("Sending " + sendBuffer.remaining() + " bytes to " + dst);
-            sc.write(sendBuffer);
-
-            if (ClientEOS.readFully(sc, receiveBuffer)) {
-                receiveBuffer.flip();
-                logger.info("Received " + receiveBuffer.remaining() + " bytes from " + sc.getRemoteAddress());
-                if (receiveBuffer.remaining() == Long.BYTES) {
-                    return receiveBuffer.getLong();
-                }
-
-                logger.warning("Invalid format, dropping...");
+        if (ClientEOS.readFully(sc, receiveBuffer)) {
+            receiveBuffer.flip();
+            logger.info("Received " + receiveBuffer.remaining() + " bytes from " + dst);
+            if (receiveBuffer.remaining() == Long.BYTES) {
+                return receiveBuffer.getLong();
             }
-        } catch (IOException e) {
-            logger.severe("IOException occured, returning...");
+
+            logger.warning("Invalid format, dropping...");
         }
 
         return null;
