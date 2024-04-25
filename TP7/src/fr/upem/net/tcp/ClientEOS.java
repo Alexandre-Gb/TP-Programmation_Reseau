@@ -163,6 +163,12 @@ public class ClientEOS {
     return ByteBuffer.allocate(buffer.capacity() * 2).put(buffer.flip());
   }
 
+  static ByteBuffer expandBuffer(ByteBuffer buffer, int newSize) {
+    if (newSize < buffer.capacity()) { throw new IllegalArgumentException(); }
+    return ByteBuffer.allocate(newSize).put(buffer.flip());
+  }
+
+
   public static void main(String[] args) throws IOException {
     var google = new InetSocketAddress("www.google.fr", 80);
     // System.out.println(getFixedSizeResponse("GET / HTTP/1.1\r\nHost: www.google.fr\r\n\r\n", google, 512));
