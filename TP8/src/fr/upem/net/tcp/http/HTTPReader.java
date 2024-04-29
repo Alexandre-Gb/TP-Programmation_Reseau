@@ -93,8 +93,23 @@ public class HTTPReader {
      *                     bytes could be read
      */
     public ByteBuffer readBytes(int size) throws IOException {
-        // TODO
-        return null;
+        buffer.flip();
+
+        var readBuffer = ByteBuffer.allocate(size);
+        while (readBuffer.hasRemaining()) {
+            if (!buffer.hasRemaining()) {
+                buffer.clear();
+                if (sc.read(buffer) == -1) {
+                    throw new HTTPException();
+                }
+                buffer.flip();
+            }
+
+            readBuffer.put(buffer.get());
+        }
+
+        buffer.compact();
+        return readBuffer;
     }
 
     /**
