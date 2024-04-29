@@ -117,10 +117,26 @@ public class HTTPReader {
      * @throws IOException HTTPException if the connection is closed before the end
      *                     of the chunks if chunks are ill-formed
      */
-
     public ByteBuffer readChunks() throws IOException {
-        // TODO
-        return null;
+        var bytes = ByteBuffer.allocate(0);
+        var size = -1;
+
+        try {
+            while (size != 0) {
+                var elt = readLineCRLF();
+                size = Integer.parseInt(elt, 16);
+                var line = readBytes(size);
+                readBytes(2);
+                var newBuffer = ByteBuffer.allocate(bytes.flip().remaining() + line.flip().remaining());
+                newBuffer.put(bytes);
+                newBuffer.put(line);
+                bytes = newBuffer;
+            }
+        } catch (NumberFormatException e) {
+            throw new HTTPException("Chunked body is ill-formed");
+        }
+
+        return bytes;
     }
 
     public static void main(String[] args) throws IOException {
@@ -144,7 +160,6 @@ public class HTTPReader {
         System.out.println(reader.readHeader());
         sc.close();
 
-        /*
         buffer = ByteBuffer.allocate(50);
         sc = SocketChannel.open();
         sc.connect(new InetSocketAddress("igm.univ-mlv.fr", 80));
@@ -170,6 +185,5 @@ public class HTTPReader {
         content.flip();
         System.out.println(header.getCharset().orElse(Charset.forName("UTF8")).decode(content));
         sc.close();
-        */
     }
 }
