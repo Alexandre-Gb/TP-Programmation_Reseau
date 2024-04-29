@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class HTTPReader {
 
@@ -20,10 +22,10 @@ public class HTTPReader {
 
     /**
      * @return The ASCII string terminated by CRLF without the CRLF
-     *         <p>
-     *         The method assume that buffer is in write mode and leaves it in
-     *         write mode The method process the data from the buffer and if necessary
-     *         will read more data from the socket.
+     * <p>
+     * The method assume that buffer is in write mode and leaves it in
+     * write mode The method process the data from the buffer and if necessary
+     * will read more data from the socket.
      * @throws IOException HTTPException if the connection is closed before a line
      *                     could be read
      */
@@ -31,7 +33,9 @@ public class HTTPReader {
         buffer.flip();
         var stringBuilder = new StringBuilder();
         try {
-            while (!stringBuilder.toString().endsWith("\r\n")) {
+            // Awful complexity
+            // while (stringBuilder.toString().endsWith("\r\n")) {
+            while (stringBuilder.length() < 2 || stringBuilder.charAt(stringBuilder.length() - 2) != '\r' || stringBuilder.charAt(stringBuilder.length() - 1) != '\n') {
                 if (!buffer.hasRemaining()) {
                     buffer.clear();
                     if (sc.read(buffer) == -1) {
@@ -56,17 +60,35 @@ public class HTTPReader {
      *                     could be read or if the header is ill-formed
      */
     public HTTPHeader readHeader() throws IOException {
-        // TODO
-        return null;
+        var header = new ArrayList<String>();
+        var map = new HashMap<String, String>();
+
+        String tmp;
+        // while ((tmp = readLineCRLF()).length() > 1) {
+        while (!(tmp = readLineCRLF()).isEmpty()) {
+            header.add(tmp);
+        }
+
+        var response = header.removeFirst();
+        header.removeLast();
+
+        for (var str : header) {
+            var split = str.split(": ", 2);
+            // Not very elegant
+            // map.compute(split[0], (k, v) -> v == null ? split[1] : v + "; " + split[1]);
+            map.merge(split[0], split[1], (v1, v2) -> v1 + "; " + v2);
+        }
+
+        return HTTPHeader.create(response, map);
     }
 
     /**
-     * @param size 
+     * @param size
      * @return a ByteBuffer in write mode containing size bytes read on the socket
-     *         <p>
-     *         The method assume that buffer is in write mode and leaves it in
-     *         write mode The method process the data from the buffer and if necessary
-     *         will read more data from the socket.
+     * <p>
+     * The method assume that buffer is in write mode and leaves it in
+     * write mode The method process the data from the buffer and if necessary
+     * will read more data from the socket.
      * @throws IOException HTTPException is the connection is closed before all
      *                     bytes could be read
      */
@@ -107,6 +129,7 @@ public class HTTPReader {
         System.out.println(reader.readHeader());
         sc.close();
 
+        /*
         buffer = ByteBuffer.allocate(50);
         sc = SocketChannel.open();
         sc.connect(new InetSocketAddress("igm.univ-mlv.fr", 80));
@@ -132,5 +155,6 @@ public class HTTPReader {
         content.flip();
         System.out.println(header.getCharset().orElse(Charset.forName("UTF8")).decode(content));
         sc.close();
+        */
     }
 }
