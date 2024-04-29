@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
@@ -113,16 +114,16 @@ public class HTTPClientChunked {
 
       if (header.getCode() == 301 || header.getCode() == 302) {
         var fields = header.getFields();
-        URI uri;
+        URL url;
         try {
-          uri = new URI(fields.get("location"));
+          url = new URI(fields.get("location")).toURL();
         } catch (URISyntaxException e) {
           logger.severe("Invalid URI in redirection: " + e.getMessage());
           throw new HTTPException();
         }
 
-        dst(uri.getHost());
-        resource(uri.getPath());
+        dst(url.getHost());
+        resource(url.getPath());
         return response();
       }
 
