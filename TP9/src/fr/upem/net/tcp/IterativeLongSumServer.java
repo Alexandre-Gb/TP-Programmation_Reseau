@@ -52,7 +52,7 @@ public class IterativeLongSumServer {
             // Receive
             var receiveBuffer = ByteBuffer.allocate(Integer.BYTES);
             if (!readFully(sc, receiveBuffer)) {
-                logger.warning("Invalid format, dropping...");
+                logger.warning("Connexion interrupted, stopping...");
                 throw new IOException();
             }
 
