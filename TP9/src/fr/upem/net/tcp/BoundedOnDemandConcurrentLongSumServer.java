@@ -128,8 +128,8 @@ public class BoundedOnDemandConcurrentLongSumServer {
         return true;
     }
 
-    public static void main(String[] args) throws NumberFormatException, IOException {
-        var server = new BoundedOnDemandConcurrentLongSumServer(Integer.parseInt(args[0]));
+    public static void main(String[] args) throws NumberFormatException, IOException, InterruptedException {
+        var server = new BoundedOnDemandConcurrentLongSumServer(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
         server.launch();
     }
 }
