@@ -45,6 +45,7 @@ public class FixedPrestartedLongSumServer {
                     } catch (IOException ioe) {
                         logger.log(Level.SEVERE, "Connection terminated with client by IOException", ioe.getCause());
                         silentlyClose(serverSocketChannel);
+                        return;
                     }
                 }
             });
