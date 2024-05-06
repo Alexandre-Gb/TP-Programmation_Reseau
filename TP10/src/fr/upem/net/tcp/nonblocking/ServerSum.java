@@ -9,7 +9,6 @@ import java.util.logging.Logger;
 
 public class ServerSum {
 
-	private static final int BUFFER_SIZE = 2 * Integer.BYTES;
 	private static final Logger logger = Logger.getLogger(ServerSum.class.getName());
 
 	private final ServerSocketChannel serverSocketChannel;
