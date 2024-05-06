@@ -42,6 +42,12 @@ public class ServerSum {
 			if (key.isValid() && key.isAcceptable()) {
 				doAccept(key);
 			}
+		} catch (IOException e) {
+			logger.severe("Error during acceptation");
+			throw new UncheckedIOException(e);
+		}
+
+		try {
 			if (key.isValid() && key.isWritable()) {
 				doWrite(key);
 			}
@@ -49,7 +55,8 @@ public class ServerSum {
 				doRead(key);
 			}
 		} catch (IOException e) {
-			throw new UncheckedIOException(e);
+			logger.info("Connection closed");
+			silentlyClose(key);
 		}
 	}
 
