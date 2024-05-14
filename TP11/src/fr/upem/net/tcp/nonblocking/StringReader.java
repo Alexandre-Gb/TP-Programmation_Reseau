@@ -11,7 +11,7 @@ public class StringReader implements Reader<String> {
   };
 
   private static final int BUFSIZ = 1024;
-  private final Charset UTF8 = StandardCharsets.UTF_8;
+  private static final Charset UTF8 = StandardCharsets.UTF_8;
   private final IntReader intReader = new IntReader();
   private final ByteBuffer internalBuffer = ByteBuffer.allocate(BUFSIZ);
   private State state = State.WAITING_INT;

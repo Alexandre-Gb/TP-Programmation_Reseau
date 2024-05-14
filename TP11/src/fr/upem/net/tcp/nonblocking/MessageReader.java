@@ -17,33 +17,35 @@ public class MessageReader implements Reader<Message> {
   @Override
   public ProcessStatus process(ByteBuffer buffer) {
     Objects.requireNonNull(buffer);
-    switch (state) {
-      case WAITING_LOGIN -> {
-        var readerLogin = reader.process(buffer);
-        if (readerLogin == ProcessStatus.ERROR) {
-          state = State.ERROR;
-          return ProcessStatus.ERROR;
-        }
-        if (readerLogin == ProcessStatus.REFILL) {
-          return ProcessStatus.REFILL;
-        }
-        state = State.WAITING_MESSAGE;
-        login = reader.get();
-        reader.reset();
+    if (state == State.DONE || state == State.ERROR) {
+      throw new IllegalStateException();
+    }
+
+    if (state == State.WAITING_LOGIN) {
+      var readerLogin = reader.process(buffer);
+      if (readerLogin == ProcessStatus.ERROR) {
+        state = State.ERROR;
+        return ProcessStatus.ERROR;
       }
-      case WAITING_MESSAGE -> {
-        var readerMessage = reader.process(buffer);
-        if (readerMessage == ProcessStatus.ERROR) {
-          state = State.ERROR;
-          return ProcessStatus.ERROR;
-        }
-        if (readerMessage == ProcessStatus.REFILL) {
-          return ProcessStatus.REFILL;
-        }
-        message = reader.get();
-        reader.reset();
+      if (readerLogin == ProcessStatus.REFILL) {
+        return ProcessStatus.REFILL;
       }
-      default -> throw new IllegalStateException();
+      state = State.WAITING_MESSAGE;
+      login = reader.get();
+      reader.reset();
+    }
+
+    if (state == State.WAITING_MESSAGE) {
+      var readerMessage = reader.process(buffer);
+      if (readerMessage == ProcessStatus.ERROR) {
+        state = State.ERROR;
+        return ProcessStatus.ERROR;
+      }
+      if (readerMessage == ProcessStatus.REFILL) {
+        return ProcessStatus.REFILL;
+      }
+      message = reader.get();
+      reader.reset();
     }
 
     state = State.DONE;
