@@ -62,7 +62,7 @@ public class ClientChat {
         /**
          * Add a message to the message queue, tries to fill bufferOut and updateInterestOps
          *
-         * @param bb
+         * @param msg
          */
         private void queueMessage(Message msg) {
             queue.add(msg);
